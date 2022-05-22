@@ -34,6 +34,7 @@ class MetalComputer {
     
     var tileMapIn: MTLBuffer? = nil
     var tileMapOut: MTLBuffer? = nil
+    var boundaryTexture: MTLTexture? = nil
     var tileWidth: Int = 0
     var tileHeight: Int = 0
     var textureWidth: Int = 0
@@ -60,7 +61,7 @@ class MetalComputer {
         maxThreadsPerThreadgroup = Int(sqrt(Double(computePipelineState.maxTotalThreadsPerThreadgroup)))
     }
     
-    func initalizeBuffers(width: Int, height: Int, textureWidth: Int, textureHeight: Int) {
+    func initalizeBuffers(width: Int, height: Int, textureWidth: Int, textureHeight: Int, image: CGImage? = nil) {
         tileWidth = width
         tileHeight = height
         self.textureWidth = textureWidth
@@ -69,6 +70,9 @@ class MetalComputer {
         let tileMapOutArray = Array<Tile>(repeating: Tile(), count: width * height)
         tileMapIn = device?.makeBuffer(bytes: tileMapInArray, length: MemoryLayout<Tile>.stride * width * height, options: .storageModeShared)
         tileMapOut = device?.makeBuffer(bytes: tileMapOutArray, length: MemoryLayout<Tile>.stride * width * height, options: .storageModeShared)
+        if let image = image {
+            boundaryTexture = ImageLoader.getMTLTexture(from: image, device: device!)
+        }
         step = 0
     }
     
@@ -76,12 +80,24 @@ class MetalComputer {
         var tilemap = Array<Tile>(repeating: Tile(), count: width * height)
         for y in 0..<height {
             for x in 0..<width {
-                let dx = Float(x - width / 2)
+                let dx = Float(x - width / 4)
                 let dy = Float(y - height / 2)
                 let v: Float = 10 * exp(-(dx*dx + dy*dy) / 200)
                 let index = x + y * width
                 tilemap[index].value = v
                 tilemap[index].prevValue = v
+//                let xf = Float(x)
+//                var v = 1 * cos(xf / 10)
+//                if (x > width / 3) {
+//                    v = 0
+//                }
+//                var v2 = 1 * cos(xf / 10 + .pi / 8)
+//                if (x > width / 3) {
+//                    v2 = 0
+//                }
+//                let index = x + y * width
+//                tilemap[index].value = v
+//                tilemap[index].prevValue = v2
             }
         }
         return tilemap
@@ -107,6 +123,7 @@ class MetalComputer {
         commandEncoder?.setComputePipelineState(computePipelineState)
         commandEncoder?.setBuffer(tileMapIn, offset: 0, index: 0)
         commandEncoder?.setBuffer(tileMapOut, offset: 0, index: 1)
+        commandEncoder?.setTexture(boundaryTexture, index: 0)
         commandEncoder?.setBytes(&params, length: MemoryLayout<Parameters>.stride, index: 2)
         commandEncoder?.dispatchThreads(threadsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
         
@@ -116,6 +133,7 @@ class MetalComputer {
         commandEncoder?.setBuffer(tileMapOut, offset: 0, index: 1)
         commandEncoder?.setBytes(&params, length: MemoryLayout<Parameters>.stride, index: 2)
         commandEncoder?.setTexture(texture, index: 0)
+        commandEncoder?.setTexture(boundaryTexture, index: 1)
         commandEncoder?.dispatchThreads(threadsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
         
         commandEncoder?.endEncoding()

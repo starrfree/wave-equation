@@ -11,7 +11,7 @@ struct ContentView: View {
     let metalViewController = MetalViewController()
     
     var body: some View {
-        ZStack {
+        VStack {
             metalViewController
             #if os(iOS)
                 .edgesIgnoringSafeArea(.all)
