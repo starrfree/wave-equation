@@ -52,7 +52,7 @@ final class MetalViewController: ViewController, MTKViewDelegate {
     func initBuffers() {
         guard let texture = metalView.currentDrawable?.texture else { return }
         let pixelSize: Int = 1
-        metalComputer.initalizeBuffers(width: texture.width / pixelSize, height: texture.height / pixelSize, textureWidth: texture.width, textureHeight: texture.height, image: ImageLoader.cgimage(named: "ellipse"))
+        metalComputer.initalizeBuffers(width: texture.width / pixelSize, height: texture.height / pixelSize, textureWidth: texture.width, textureHeight: texture.height, image: ImageLoader.cgimage(named: "2 rooms"))
     }
 
     func setupSubviews() {

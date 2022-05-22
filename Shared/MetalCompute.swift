@@ -80,24 +80,23 @@ class MetalComputer {
         var tilemap = Array<Tile>(repeating: Tile(), count: width * height)
         for y in 0..<height {
             for x in 0..<width {
-                let dx = Float(x - width / 4)
+                /// Gaussian wave
+                let dx = Float(x - width / 5)
                 let dy = Float(y - height / 2)
-                let v: Float = 10 * exp(-(dx*dx + dy*dy) / 200)
+                let v: Float = 20 * exp(-(dx*dx + dy*dy) / 1000)
                 let index = x + y * width
                 tilemap[index].value = v
                 tilemap[index].prevValue = v
+                
+                /// Sine wave
 //                let xf = Float(x)
-//                var v = 1 * cos(xf / 10)
+//                var v = sin(xf / 10)
 //                if (x > width / 3) {
 //                    v = 0
 //                }
-//                var v2 = 1 * cos(xf / 10 + .pi / 8)
-//                if (x > width / 3) {
-//                    v2 = 0
-//                }
 //                let index = x + y * width
 //                tilemap[index].value = v
-//                tilemap[index].prevValue = v2
+//                tilemap[index].prevValue = v
             }
         }
         return tilemap
