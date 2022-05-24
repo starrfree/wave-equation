@@ -23,35 +23,39 @@ kernel void compute_kernel(device Tile *tileMapIn  [[ buffer(0) ]],
     float yRatio((float)boundaryTexture.get_height() / (float)params->height);
     half4 tcolor(boundaryTexture.read(uint2(float(gid.x) * xRatio, float(gid.y) * yRatio)));
     uint id(indexFromCoordinates(gid, params->width));
-    float middle = tileMapIn[id].value;
-    float before = tileMapIn[id].prevValue;
-    float boundary = middle;
-    float right = boundary;
-    if (int(gid.x) < params->width - 1 && tcolor.a < 0.95) {
-        right = tileMapIn[id + 1].value;
-    }
-    float left = boundary;
-    if (int(gid.x) > 0 && tcolor.a < 0.95) {
-        left = tileMapIn[id - 1].value;
-    }
-    float bottom = boundary;
-    if (int(gid.y) < params->height - 1 && tcolor.a < 0.95) {
-        bottom = tileMapIn[id + params->width].value;
-    }
-    float top = boundary;
-    if (int(gid.y) > 0 && tcolor.a < 0.95) {
-        top = tileMapIn[id - params->width].value;
-    }
-    float dfx = right - 2 * middle + left;
-    float dfy = top - 2 * middle + bottom;
-    if (tcolor.a < 0.95) {
-        float c(maxc * (1 - tcolor.a));
-        float newValue = c*c * (dfx / (dx * dx) + dfy / (dy * dy)) * dt*dt + 2 * middle - before;
-        tileMapOut[id].value = newValue * damp;
-        tileMapOut[id].prevValue = middle;
+    if (gid.y == 0 && params->step < 120 * 3) { // && false
+        tileMapOut[id].value = cos(float(params->step) / 10);
     } else {
-        tileMapOut[id].value = 0;
-        tileMapOut[id].prevValue = 0;
+        float middle = tileMapIn[id].value;
+        float before = tileMapIn[id].prevValue;
+        float boundary = before;//middle;//
+        float right = boundary;
+        if (int(gid.x) < params->width - 1 && tcolor.a < 0.95) {
+            right = tileMapIn[id + 1].value;
+        }
+        float left = boundary;
+        if (int(gid.x) > 0 && tcolor.a < 0.95) {
+            left = tileMapIn[id - 1].value;
+        }
+        float bottom = boundary;
+        if (int(gid.y) < params->height - 1 && tcolor.a < 0.95) {
+            bottom = tileMapIn[id + params->width].value;
+        }
+        float top = boundary;
+        if (int(gid.y) > 0 && tcolor.a < 0.95) {
+            top = tileMapIn[id - params->width].value;
+        }
+        float dfx = right - 2 * middle + left;
+        float dfy = top - 2 * middle + bottom;
+        if (tcolor.a < 0.95) {
+            float c(maxc * (1 - tcolor.a));
+            float newValue = c*c * (dfx / (dx * dx) + dfy / (dy * dy)) * dt*dt + 2 * middle - before;
+            tileMapOut[id].value = newValue * damp;
+            tileMapOut[id].prevValue = middle;
+        } else {
+            tileMapOut[id].value = 0;
+            tileMapOut[id].prevValue = 0;
+        }
     }
 }
 

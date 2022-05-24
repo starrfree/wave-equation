@@ -25,7 +25,7 @@ final class MetalViewController: ViewController, MTKViewDelegate {
     var metalView: MTKView = MTKView()
     var parameters = Parameters()
     
-    var saveImages = true
+    var saveImages = false
     var imageFolder: URL?
     var simulationSteps = 0
     var imageSaved = 0
@@ -56,8 +56,8 @@ final class MetalViewController: ViewController, MTKViewDelegate {
     
     func initBuffers() {
         guard let texture = metalView.currentDrawable?.texture else { return }
-        let pixelSize: Int = 1
-        let image: CGImage? = ImageLoader.cgimage(named: "double slit")
+        let pixelSize: Int = 2
+        let image: CGImage? = ImageLoader.cgimage(named: "galton no border")
         metalComputer.initalizeBuffers(width: texture.width / pixelSize, height: texture.height / pixelSize, textureWidth: texture.width, textureHeight: texture.height, image: image)
         #if os(macOS)
         if saveImages {
@@ -107,7 +107,7 @@ final class MetalViewController: ViewController, MTKViewDelegate {
         
         #if os(macOS)
         if let url = imageFolder, saveImages {
-            if simulationSteps % 8 == 0 {
+            if simulationSteps % 3 == 0 {
                 let dateFormatter = DateFormatter()
                 dateFormatter.dateFormat = "ss:mm:hh"
                 saveTextureToFile(texture: currentDrawable.texture, url: url.appendingPathComponent(String(imageSaved) + ".png"))

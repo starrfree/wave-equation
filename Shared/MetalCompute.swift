@@ -78,25 +78,26 @@ class MetalComputer {
     
     func initializeTilemap(width: Int, height: Int) -> Array<Tile> {
         var tilemap = Array<Tile>(repeating: Tile(), count: width * height)
+        let w = Float(width)
         for y in 0..<height {
             for x in 0..<width {
                 /// Gaussian wave
-//                let dx = Float(x - width / 4)
-//                let dy = Float(y - height / 2)
-//                let v: Float = 10 * exp(-(dx*dx + dy*dy) / 600)
+//                let dx = Float(x - width / 2)
+//                let dy = Float(y - height / 20)
+//                let v: Float = 10 * exp(-(dx*dx + dy*dy) / w * 2)
 //                let index = x + y * width
 //                tilemap[index].value = v
 //                tilemap[index].prevValue = v
                 
                 /// Sine wave
-                let xf = Float(x)
-                var v = 2 * sin(xf / 15)
-                if (x > width / 4 ) { //|| x < width / 100 - 40
-                    v = 0
-                }
-                let index = x + y * width
-                tilemap[index].value = v
-                tilemap[index].prevValue = v
+//                let xf = Float(x)
+//                var v1 = 1.5 * sin(xf * 300 / w)
+//                if (x > width / 4) { //|| x < width / 4 - 40
+//                    v1 = 0
+//                }
+//                let index = x + y * width
+//                tilemap[index].value = v1
+//                tilemap[index].prevValue = v1
             }
         }
         return tilemap
