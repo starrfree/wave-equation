@@ -81,22 +81,22 @@ class MetalComputer {
         for y in 0..<height {
             for x in 0..<width {
                 /// Gaussian wave
-                let dx = Float(x - width / 5)
-                let dy = Float(y - height / 2)
-                let v: Float = 20 * exp(-(dx*dx + dy*dy) / 1000)
-                let index = x + y * width
-                tilemap[index].value = v
-                tilemap[index].prevValue = v
-                
-                /// Sine wave
-//                let xf = Float(x)
-//                var v = sin(xf / 10)
-//                if (x > width / 3) {
-//                    v = 0
-//                }
+//                let dx = Float(x - width / 4)
+//                let dy = Float(y - height / 2)
+//                let v: Float = 10 * exp(-(dx*dx + dy*dy) / 600)
 //                let index = x + y * width
 //                tilemap[index].value = v
 //                tilemap[index].prevValue = v
+                
+                /// Sine wave
+                let xf = Float(x)
+                var v = 2 * sin(xf / 15)
+                if (x > width / 4 ) { //|| x < width / 100 - 40
+                    v = 0
+                }
+                let index = x + y * width
+                tilemap[index].value = v
+                tilemap[index].prevValue = v
             }
         }
         return tilemap

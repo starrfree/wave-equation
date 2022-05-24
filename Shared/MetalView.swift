@@ -25,6 +25,11 @@ final class MetalViewController: ViewController, MTKViewDelegate {
     var metalView: MTKView = MTKView()
     var parameters = Parameters()
     
+    var saveImages = true
+    var imageFolder: URL?
+    var simulationSteps = 0
+    var imageSaved = 0
+    
     #if canImport(UIKit)
     override func viewDidLoad() {
         initialize()
@@ -52,7 +57,19 @@ final class MetalViewController: ViewController, MTKViewDelegate {
     func initBuffers() {
         guard let texture = metalView.currentDrawable?.texture else { return }
         let pixelSize: Int = 1
-        metalComputer.initalizeBuffers(width: texture.width / pixelSize, height: texture.height / pixelSize, textureWidth: texture.width, textureHeight: texture.height, image: ImageLoader.cgimage(named: "2 rooms"))
+        let image: CGImage? = ImageLoader.cgimage(named: "double slit")
+        metalComputer.initalizeBuffers(width: texture.width / pixelSize, height: texture.height / pixelSize, textureWidth: texture.width, textureHeight: texture.height, image: image)
+        #if os(macOS)
+        if saveImages {
+            metalView.isPaused = true
+            DispatchQueue.main.async {
+                self.promptImageFolder { [self] in
+                    simulationSteps = 0
+                    metalView.isPaused = false
+                }
+            }
+        }
+        #endif
     }
 
     func setupSubviews() {
@@ -88,10 +105,65 @@ final class MetalViewController: ViewController, MTKViewDelegate {
         
         metalComputer.compute(to: currentDrawable.texture, parameters: parameters)
         
+        #if os(macOS)
+        if let url = imageFolder, saveImages {
+            if simulationSteps % 8 == 0 {
+                let dateFormatter = DateFormatter()
+                dateFormatter.dateFormat = "ss:mm:hh"
+                saveTextureToFile(texture: currentDrawable.texture, url: url.appendingPathComponent(String(imageSaved) + ".png"))
+                print("Saved:", imageSaved)
+                imageSaved += 1
+            }
+            if simulationSteps > 30000 {
+                exit(2002)
+            }
+        }
+        simulationSteps += 1
+        #endif
+        
         commandBuffer.present(currentDrawable)
         commandBuffer.commit()
         commandBuffer.waitUntilScheduled()
     }
+    
+    #if os(macOS)
+    func promptImageFolder(completion: @escaping () -> ()) {
+        let panel = NSOpenPanel()
+        panel.message = "Select folder to save the images"
+        panel.prompt = "Select"
+        panel.canCreateDirectories = true
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        if let window = NSApplication.shared.windows.first {
+            panel.beginSheetModal(for: window) { result in
+                if result == .OK {
+                    self.imageFolder = panel.url
+                    completion()
+                }
+            }
+        }
+    }
+
+    func saveTextureToFile(texture: MTLTexture, url: URL) {
+        let kciOptions = [CIImageOption.colorSpace: CGColorSpaceCreateDeviceRGB()]
+        let ciImage = CIImage(mtlTexture: texture, options: kciOptions)!
+        let context = CIContext()
+        let cgImage = context.createCGImage(ciImage, from: ciImage.extent)
+        let image = NSImage(cgImage: cgImage!, size: NSSize(width: texture.width, height: texture.height))
+        let data = image.tiffRepresentation
+        let bitmapRep = NSBitmapImageRep(data: data!)
+        let pngData = bitmapRep?.representation(using: .png, properties: [:])
+        if let pngData = pngData {
+            do {
+                try pngData.write(to: url)
+            } catch {
+                print("Failed write pngData:", error)
+            }
+        } else {
+            print("No PNG data.")
+        }
+    }
+    #endif
 }
 
 extension MetalViewController : ViewControllerRepresentable {

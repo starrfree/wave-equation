@@ -11,7 +11,8 @@
 constant float dx(1);
 constant float dy(1);
 constant float dt(1);
-constant float c(0.7);
+constant float maxc(0.7);
+constant float damp(1);
 
 kernel void compute_kernel(device Tile *tileMapIn  [[ buffer(0) ]],
                            device Tile *tileMapOut  [[ buffer(1) ]],
@@ -26,26 +27,31 @@ kernel void compute_kernel(device Tile *tileMapIn  [[ buffer(0) ]],
     float before = tileMapIn[id].prevValue;
     float boundary = middle;
     float right = boundary;
-    if (int(gid.x) < params->width - 1 && tcolor.a == 0) {
+    if (int(gid.x) < params->width - 1 && tcolor.a < 0.95) {
         right = tileMapIn[id + 1].value;
     }
     float left = boundary;
-    if (int(gid.x) > 0 && tcolor.a == 0) {
+    if (int(gid.x) > 0 && tcolor.a < 0.95) {
         left = tileMapIn[id - 1].value;
     }
     float bottom = boundary;
-    if (int(gid.y) < params->height - 1 && tcolor.a == 0) {
+    if (int(gid.y) < params->height - 1 && tcolor.a < 0.95) {
         bottom = tileMapIn[id + params->width].value;
     }
     float top = boundary;
-    if (int(gid.y) > 0 && tcolor.a == 0) {
+    if (int(gid.y) > 0 && tcolor.a < 0.95) {
         top = tileMapIn[id - params->width].value;
     }
     float dfx = right - 2 * middle + left;
     float dfy = top - 2 * middle + bottom;
-    if (tcolor.a == 0) {
-        tileMapOut[id].value = c*c * (dfx / (dx * dx) + dfy / (dy * dy)) * dt*dt + 2 * middle - before;
+    if (tcolor.a < 0.95) {
+        float c(maxc * (1 - tcolor.a));
+        float newValue = c*c * (dfx / (dx * dx) + dfy / (dy * dy)) * dt*dt + 2 * middle - before;
+        tileMapOut[id].value = newValue * damp;
         tileMapOut[id].prevValue = middle;
+    } else {
+        tileMapOut[id].value = 0;
+        tileMapOut[id].prevValue = 0;
     }
 }
 
@@ -65,6 +71,9 @@ kernel void copy_to_texture(texture2d<half, access::write> texture [[ texture(0)
 
     float value = tileMapOut[id].value / 2 + 0.5;
     half3 color(value);
+//    if (value <= 1.2) {
+//        color *= 0.2;
+//    }
     if (isinf(value)) {
         color = half3(0, 1, 0);
     }
@@ -76,9 +85,8 @@ kernel void copy_to_texture(texture2d<half, access::write> texture [[ texture(0)
             float xtRatio((float)boundaryTexture.get_width() / (float)params->textureWidth);
             float ytRatio((float)boundaryTexture.get_height() / (float)params->textureHeight);
             half4 tcolor(boundaryTexture.read(uint2(float(x + i) * xtRatio, float(y + j) * ytRatio)));
-            if (tcolor.a > 0) {
-                color = half3(0, 0, 0.2);
-            }
+            float t(tcolor.a * tcolor.a);
+            color = color * (1 - t) + half3(0, 0, 0.2) * t;
             texture.write(half4(color, 1), uint2(x + i, y + j));
         }
     }
