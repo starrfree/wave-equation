@@ -57,8 +57,9 @@ final class MetalViewController: ViewController, MTKViewDelegate {
     func initBuffers() {
         guard let texture = metalView.currentDrawable?.texture else { return }
         let pixelSize: Int = 2
-        let image: CGImage? = ImageLoader.cgimage(named: "galton no border")
-        metalComputer.initalizeBuffers(width: texture.width / pixelSize, height: texture.height / pixelSize, textureWidth: texture.width, textureHeight: texture.height, image: image)
+        let image: CGImage? = ImageLoader.cgimage(named: "lens 2", subdirectory: "Shapes")
+        let gradient: CGImage? = ImageLoader.cgimage(named: "bluewhitered sat", subdirectory: "Gradient")
+        metalComputer.initalizeBuffers(width: texture.width / pixelSize, height: texture.height / pixelSize, textureWidth: texture.width, textureHeight: texture.height, image: image, gradient: gradient)
         #if os(macOS)
         if saveImages {
             metalView.isPaused = true
@@ -107,7 +108,7 @@ final class MetalViewController: ViewController, MTKViewDelegate {
         
         #if os(macOS)
         if let url = imageFolder, saveImages {
-            if simulationSteps % 3 == 0 {
+            if simulationSteps % 4 == 0 {
                 let dateFormatter = DateFormatter()
                 dateFormatter.dateFormat = "ss:mm:hh"
                 saveTextureToFile(texture: currentDrawable.texture, url: url.appendingPathComponent(String(imageSaved) + ".png"))

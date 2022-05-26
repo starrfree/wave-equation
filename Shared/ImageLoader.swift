@@ -23,8 +23,8 @@ class ImageLoader {
     }
     
     #if os(macOS)
-    static func cgimage(named name: String) -> CGImage? {
-        if let url = Bundle.main.url(forResource: name, withExtension: "png", subdirectory: "Shapes") {
+    static func cgimage(named name: String, subdirectory: String) -> CGImage? {
+        if let url = Bundle.main.url(forResource: name, withExtension: "png", subdirectory: subdirectory) {
             if let image = NSImage(contentsOf: url) {
                 var imageRect = CGRect(x: 0, y: 0, width: image.size.width, height: image.size.height)
                 let imageRef = image.cgImage(forProposedRect: &imageRect, context: nil, hints: nil)
@@ -38,8 +38,8 @@ class ImageLoader {
         return nil
     }
     #else
-    static func cgimage(named name: String) -> CGImage? {
-        if let url = Bundle.main.url(forResource: name, withExtension: "png", subdirectory: "Shapes") {
+    static func cgimage(named name: String, subdirectory: String) -> CGImage? {
+        if let url = Bundle.main.url(forResource: name, withExtension: "png", subdirectory: subdirectory) {
             if let image = UIImage(contentsOfFile: url.path) {
                 return image.cgImage
             } else {

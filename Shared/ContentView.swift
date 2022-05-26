@@ -16,7 +16,7 @@ struct ContentView: View {
             #if os(iOS)
                 .edgesIgnoringSafeArea(.all)
             #endif
-                .aspectRatio(1, contentMode: .fit)
+                .aspectRatio(2, contentMode: .fit)
         }
     }
 }

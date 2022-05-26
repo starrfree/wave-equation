@@ -35,6 +35,7 @@ class MetalComputer {
     var tileMapIn: MTLBuffer? = nil
     var tileMapOut: MTLBuffer? = nil
     var boundaryTexture: MTLTexture? = nil
+    var gradientTexture: MTLTexture? = nil
     var tileWidth: Int = 0
     var tileHeight: Int = 0
     var textureWidth: Int = 0
@@ -61,7 +62,7 @@ class MetalComputer {
         maxThreadsPerThreadgroup = Int(sqrt(Double(computePipelineState.maxTotalThreadsPerThreadgroup)))
     }
     
-    func initalizeBuffers(width: Int, height: Int, textureWidth: Int, textureHeight: Int, image: CGImage? = nil) {
+    func initalizeBuffers(width: Int, height: Int, textureWidth: Int, textureHeight: Int, image: CGImage? = nil, gradient: CGImage? = nil) {
         tileWidth = width
         tileHeight = height
         self.textureWidth = textureWidth
@@ -73,6 +74,9 @@ class MetalComputer {
         if let image = image {
             boundaryTexture = ImageLoader.getMTLTexture(from: image, device: device!)
         }
+        if let gradient = gradient {
+            gradientTexture = ImageLoader.getMTLTexture(from: gradient, device: device!)
+        }
         step = 0
     }
     
@@ -82,8 +86,8 @@ class MetalComputer {
         for y in 0..<height {
             for x in 0..<width {
                 /// Gaussian wave
-//                let dx = Float(x - width / 2)
-//                let dy = Float(y - height / 20)
+//                let dx = Float(x - width / 4)
+//                let dy = Float(y - height / 2)
 //                let v: Float = 10 * exp(-(dx*dx + dy*dy) / w * 2)
 //                let index = x + y * width
 //                tilemap[index].value = v
@@ -134,6 +138,7 @@ class MetalComputer {
         commandEncoder?.setBytes(&params, length: MemoryLayout<Parameters>.stride, index: 2)
         commandEncoder?.setTexture(texture, index: 0)
         commandEncoder?.setTexture(boundaryTexture, index: 1)
+        commandEncoder?.setTexture(gradientTexture, index: 2)
         commandEncoder?.dispatchThreads(threadsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
         
         commandEncoder?.endEncoding()
