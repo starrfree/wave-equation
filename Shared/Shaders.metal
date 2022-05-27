@@ -13,12 +13,13 @@ constant float dy(1);
 constant float dt(1);
 constant float maxc(0.7);
 constant float damp(1);
-constant float aCeil(0.1);
+constant float aCeil(0.95);
 
 kernel void compute_kernel(device Tile *tileMapIn  [[ buffer(0) ]],
                            device Tile *tileMapOut  [[ buffer(1) ]],
+                           device Tile *energyMap  [[ buffer(2) ]],
                            texture2d<half, access::read> boundaryTexture [[ texture(0) ]],
-                           constant Parameters *params [[ buffer(2) ]],
+                           constant Parameters *params [[ buffer(3) ]],
                            uint2 gid [[ thread_position_in_grid ]]) {
     float xRatio((float)boundaryTexture.get_width() / (float)params->width);
     float yRatio((float)boundaryTexture.get_height() / (float)params->height);
@@ -28,8 +29,10 @@ kernel void compute_kernel(device Tile *tileMapIn  [[ buffer(0) ]],
     if (a > aCeil) {
         a = 1;
     }
+    float outValue;
     if (gid.x == 1) { // && false // (int)gid.x == params->width / 2 && (int)gid.y == params->height / 2
-        tileMapOut[id].value = 2 * cos(xRatio * float(params->step) / 20) * (params->step < 120 * 10);
+        outValue = 0.6 * cos(xRatio * float(params->step) / 20) * (params->step < 120 * 10 / xRatio);
+        tileMapOut[id].value = outValue;
     } else {
         float middle = tileMapIn[id].value;
         float before = tileMapIn[id].prevValue;
@@ -55,21 +58,25 @@ kernel void compute_kernel(device Tile *tileMapIn  [[ buffer(0) ]],
         if (a < aCeil) {
             float c(maxc * (1 - a));
             float newValue = c*c * (dfx / (dx * dx) + dfy / (dy * dy)) * dt*dt + 2 * middle - before;
-            tileMapOut[id].value = newValue * damp;
+            outValue = newValue * damp;
+            tileMapOut[id].value = outValue;
             tileMapOut[id].prevValue = middle;
         } else {
-            tileMapOut[id].value = 0;
+            outValue = 0;
+            tileMapOut[id].value = outValue;
             tileMapOut[id].prevValue = 0;
         }
     }
+    energyMap[id].value += outValue * outValue;
 }
 
 kernel void copy_to_texture(texture2d<half, access::write> texture [[ texture(0) ]],
                  device Tile *tileMapIn  [[ buffer(0) ]],
                  device Tile *tileMapOut  [[ buffer(1) ]],
+                 device Tile *energyMap  [[ buffer(2) ]],
                  texture2d<half, access::read> boundaryTexture [[ texture(1) ]],
                  texture2d<half, access::read> gradient [[ texture(2) ]],
-                 constant Parameters *params [[ buffer(2) ]],
+                 constant Parameters *params [[ buffer(3) ]],
                  uint2 gid [[ thread_position_in_grid ]]) {
     float xRatio(float(params->textureWidth) / float(params->width));
     float yRatio(float(params->textureHeight) / float(params->height));
@@ -80,6 +87,7 @@ kernel void copy_to_texture(texture2d<half, access::write> texture [[ texture(0)
     tileMapIn[id].prevValue = tileMapOut[id].prevValue;
 
     float value = max(min(tileMapOut[id].value / 2 + 0.5, 1.0), 0.0);
+//    float value = max(min(energyMap[id].value / float(params->step + 1), 1.0), 0.0);
     float h(gradient.get_height() - 1);
     half3 color;
     if (h == 0) {

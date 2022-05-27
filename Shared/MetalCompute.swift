@@ -34,6 +34,7 @@ class MetalComputer {
     
     var tileMapIn: MTLBuffer? = nil
     var tileMapOut: MTLBuffer? = nil
+    var energyMap: MTLBuffer? = nil
     var boundaryTexture: MTLTexture? = nil
     var gradientTexture: MTLTexture? = nil
     var tileWidth: Int = 0
@@ -68,9 +69,10 @@ class MetalComputer {
         self.textureWidth = textureWidth
         self.textureHeight = textureHeight
         let tileMapInArray = initializeTilemap(width: width, height: height)
-        let tileMapOutArray = Array<Tile>(repeating: Tile(), count: width * height)
+        let emptyTileMapArray = Array<Tile>(repeating: Tile(), count: width * height)
         tileMapIn = device?.makeBuffer(bytes: tileMapInArray, length: MemoryLayout<Tile>.stride * width * height, options: .storageModeShared)
-        tileMapOut = device?.makeBuffer(bytes: tileMapOutArray, length: MemoryLayout<Tile>.stride * width * height, options: .storageModeShared)
+        tileMapOut = device?.makeBuffer(bytes: emptyTileMapArray, length: MemoryLayout<Tile>.stride * width * height, options: .storageModeShared)
+        energyMap = device?.makeBuffer(bytes: emptyTileMapArray, length: MemoryLayout<Tile>.stride * width * height, options: .storageModeShared)
         if let image = image {
             boundaryTexture = ImageLoader.getMTLTexture(from: image, device: device!)
         }
@@ -127,15 +129,17 @@ class MetalComputer {
         commandEncoder?.setComputePipelineState(computePipelineState)
         commandEncoder?.setBuffer(tileMapIn, offset: 0, index: 0)
         commandEncoder?.setBuffer(tileMapOut, offset: 0, index: 1)
+        commandEncoder?.setBuffer(energyMap, offset: 0, index: 2)
         commandEncoder?.setTexture(boundaryTexture, index: 0)
-        commandEncoder?.setBytes(&params, length: MemoryLayout<Parameters>.stride, index: 2)
+        commandEncoder?.setBytes(&params, length: MemoryLayout<Parameters>.stride, index: 3)
         commandEncoder?.dispatchThreads(threadsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
         
         /// COPY TO TEXTURE
         commandEncoder?.setComputePipelineState(copyPipelineState)
         commandEncoder?.setBuffer(tileMapIn, offset: 0, index: 0)
         commandEncoder?.setBuffer(tileMapOut, offset: 0, index: 1)
-        commandEncoder?.setBytes(&params, length: MemoryLayout<Parameters>.stride, index: 2)
+        commandEncoder?.setBuffer(energyMap, offset: 0, index: 2)
+        commandEncoder?.setBytes(&params, length: MemoryLayout<Parameters>.stride, index: 3)
         commandEncoder?.setTexture(texture, index: 0)
         commandEncoder?.setTexture(boundaryTexture, index: 1)
         commandEncoder?.setTexture(gradientTexture, index: 2)

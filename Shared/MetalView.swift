@@ -57,7 +57,7 @@ final class MetalViewController: ViewController, MTKViewDelegate {
     func initBuffers() {
         guard let texture = metalView.currentDrawable?.texture else { return }
         let pixelSize: Int = 2
-        let image: CGImage? = ImageLoader.cgimage(named: "lens 2", subdirectory: "Shapes")
+        let image: CGImage? = ImageLoader.cgimage(named: "conv div", subdirectory: "Shapes")
         let gradient: CGImage? = ImageLoader.cgimage(named: "bluewhitered sat", subdirectory: "Gradient")
         metalComputer.initalizeBuffers(width: texture.width / pixelSize, height: texture.height / pixelSize, textureWidth: texture.width, textureHeight: texture.height, image: image, gradient: gradient)
         #if os(macOS)
@@ -115,7 +115,7 @@ final class MetalViewController: ViewController, MTKViewDelegate {
                 print("Saved:", imageSaved)
                 imageSaved += 1
             }
-            if simulationSteps > 30000 {
+            if imageSaved > 1200 {
                 exit(2002)
             }
         }
