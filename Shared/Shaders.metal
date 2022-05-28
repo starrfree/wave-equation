@@ -23,15 +23,15 @@ kernel void compute_kernel(device Tile *tileMapIn  [[ buffer(0) ]],
                            uint2 gid [[ thread_position_in_grid ]]) {
     float xRatio((float)boundaryTexture.get_width() / (float)params->width);
     float yRatio((float)boundaryTexture.get_height() / (float)params->height);
-    half4 tcolor(boundaryTexture.read(uint2(float(gid.x) * xRatio, float(gid.y) * yRatio)));
+    half4 tcolor(boundaryTexture.read(uint2(float(gid.x) * xRatio + 600, float(gid.y) * yRatio)));
     uint id(indexFromCoordinates(gid, params->width));
-    float a(tcolor.a);
+    float a(tcolor.a / 2.5);
     if (a > aCeil) {
         a = 1;
     }
     float outValue;
     if (gid.x == 1) { // && false // (int)gid.x == params->width / 2 && (int)gid.y == params->height / 2
-        outValue = 0.6 * cos(xRatio * float(params->step) / 20) * (params->step < 120 * 10 / xRatio);
+        outValue = 0.9 * cos(xRatio * float(params->step) / 20) * (params->step < 120 * 10 / xRatio);
         tileMapOut[id].value = outValue;
     } else {
         float middle = tileMapIn[id].value;
@@ -86,8 +86,8 @@ kernel void copy_to_texture(texture2d<half, access::write> texture [[ texture(0)
     tileMapIn[id].value = tileMapOut[id].value;
     tileMapIn[id].prevValue = tileMapOut[id].prevValue;
 
-    float value = max(min(tileMapOut[id].value / 2 + 0.5, 1.0), 0.0);
-//    float value = max(min(energyMap[id].value / float(params->step + 1), 1.0), 0.0);
+//    float value = max(min(tileMapOut[id].value / 2 + 0.5, 1.0), 0.0);
+    float value = max(min(energyMap[id].value / float(params->step + 1), 1.0), 0.0);
     float h(gradient.get_height() - 1);
     half3 color;
     if (h == 0) {
@@ -108,8 +108,8 @@ kernel void copy_to_texture(texture2d<half, access::write> texture [[ texture(0)
         for (int j(0); j < yRatio; j++) {
             float xtRatio((float)boundaryTexture.get_width() / (float)params->textureWidth);
             float ytRatio((float)boundaryTexture.get_height() / (float)params->textureHeight);
-            half4 tcolor(boundaryTexture.read(uint2(float(x + i) * xtRatio, float(y + j) * ytRatio)));
-            float t(tcolor.a * tcolor.a);
+            half4 tcolor(boundaryTexture.read(uint2(float(x + i) * xtRatio + 600, float(y + j) * ytRatio)));
+            float t(tcolor.a * tcolor.a / (2.5*2.5));
             color = color * (1 - t) + half3(0, 0, 0.2) * t;
             texture.write(half4(color, 1), uint2(x + i, y + j));
         }

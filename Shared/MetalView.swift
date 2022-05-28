@@ -25,7 +25,7 @@ final class MetalViewController: ViewController, MTKViewDelegate {
     var metalView: MTKView = MTKView()
     var parameters = Parameters()
     
-    var saveImages = false
+    var saveImages = true
     var imageFolder: URL?
     var simulationSteps = 0
     var imageSaved = 0
@@ -45,6 +45,19 @@ final class MetalViewController: ViewController, MTKViewDelegate {
         setupSubviews()
         setupMetalView()
         initBuffers()
+        #if os(macOS)
+        if saveImages {
+            DispatchQueue.main.async {
+                self.promptImageFolder(prompt: "Select folder to save the images") { [self] path in
+                    self.imageFolder = path
+                    simulationSteps = 0
+                    drawSequence()
+                }
+            }
+        } else {
+            drawSequence()
+        }
+        #endif
     }
 
     func setupMetalView() {
@@ -52,25 +65,20 @@ final class MetalViewController: ViewController, MTKViewDelegate {
         metalView.clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
         metalView.delegate = self
         metalView.framebufferOnly = false
+        metalView.isPaused = true
     }
     
-    func initBuffers() {
+    func initBuffers(imageURL: URL? = nil) {
         guard let texture = metalView.currentDrawable?.texture else { return }
         let pixelSize: Int = 2
-        let image: CGImage? = ImageLoader.cgimage(named: "conv div", subdirectory: "Shapes")
-        let gradient: CGImage? = ImageLoader.cgimage(named: "bluewhitered sat", subdirectory: "Gradient")
-        metalComputer.initalizeBuffers(width: texture.width / pixelSize, height: texture.height / pixelSize, textureWidth: texture.width, textureHeight: texture.height, image: image, gradient: gradient)
-        #if os(macOS)
-        if saveImages {
-            metalView.isPaused = true
-            DispatchQueue.main.async {
-                self.promptImageFolder { [self] in
-                    simulationSteps = 0
-                    metalView.isPaused = false
-                }
-            }
+        let image: CGImage?
+        if let url = imageURL {
+            image = ImageLoader.cgimage(at: url)
+        } else {
+            image = ImageLoader.cgimage(named: "lens 2", subdirectory: "Shapes")
         }
-        #endif
+        let gradient: CGImage? = ImageLoader.cgimage(named: "plasma", subdirectory: "Gradient")
+        metalComputer.initalizeBuffers(width: texture.width / pixelSize, height: texture.height / pixelSize, textureWidth: texture.width, textureHeight: texture.height, image: image, gradient: gradient)
     }
 
     func setupSubviews() {
@@ -95,27 +103,28 @@ final class MetalViewController: ViewController, MTKViewDelegate {
             print("draw error")
             return
         }
-        
         if currentDrawable.texture.width != metalComputer.textureWidth {
             initBuffers()
+            return
         }
         
         if currentDrawable.texture.height != metalComputer.textureHeight {
             initBuffers()
+            return
         }
         
-        metalComputer.compute(to: currentDrawable.texture, parameters: parameters)
+        metalComputer.compute(to: currentDrawable.texture, parameters: parameters, iterations: 2650)
         
         #if os(macOS)
         if let url = imageFolder, saveImages {
-            if simulationSteps % 4 == 0 {
+            if simulationSteps % 1 == 0 {
                 let dateFormatter = DateFormatter()
                 dateFormatter.dateFormat = "ss:mm:hh"
                 saveTextureToFile(texture: currentDrawable.texture, url: url.appendingPathComponent(String(imageSaved) + ".png"))
                 print("Saved:", imageSaved)
                 imageSaved += 1
             }
-            if imageSaved > 1200 {
+            if imageSaved > 30000 {
                 exit(2002)
             }
         }
@@ -128,9 +137,32 @@ final class MetalViewController: ViewController, MTKViewDelegate {
     }
     
     #if os(macOS)
-    func promptImageFolder(completion: @escaping () -> ()) {
+    func drawSequence() {
+        DispatchQueue.main.async {
+            self.promptImageFolder(prompt: "Select sequence folder") { url in
+                if let url = url {
+                    let fileNames = try! FileManager.default.contentsOfDirectory(atPath: url.path)
+                    let fileNamesFiltered = fileNames.filter({ str in
+                        return Int(str.replacingOccurrences(of: ".png", with: "")) != nil
+                    })
+                    let fileNamesSorted = fileNamesFiltered.sorted(by: { a, b in
+                        return Int(a.replacingOccurrences(of: ".png", with: ""))! < Int(b.replacingOccurrences(of: ".png", with: ""))!
+                    })
+                    for i in 0..<fileNamesSorted.count {
+                        let fileName = fileNamesSorted[i]
+                        DispatchQueue.main.async { [self] in
+                            initBuffers(imageURL: url.appendingPathComponent(fileName))
+                            metalView.draw()
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    func promptImageFolder(prompt: String, completion: @escaping (URL?) -> ()) {
         let panel = NSOpenPanel()
-        panel.message = "Select folder to save the images"
+        panel.message = prompt
         panel.prompt = "Select"
         panel.canCreateDirectories = true
         panel.canChooseDirectories = true
@@ -138,8 +170,7 @@ final class MetalViewController: ViewController, MTKViewDelegate {
         if let window = NSApplication.shared.windows.first {
             panel.beginSheetModal(for: window) { result in
                 if result == .OK {
-                    self.imageFolder = panel.url
-                    completion()
+                    completion(panel.url)
                 }
             }
         }

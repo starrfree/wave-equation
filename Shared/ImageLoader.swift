@@ -37,6 +37,17 @@ class ImageLoader {
         }
         return nil
     }
+    
+    static func cgimage(at url: URL) -> CGImage? {
+        if let image = NSImage(contentsOf: url) {
+            var imageRect = CGRect(x: 0, y: 0, width: image.size.width, height: image.size.height)
+            let imageRef = image.cgImage(forProposedRect: &imageRect, context: nil, hints: nil)
+            return imageRef
+        } else {
+            print("Could not get NSImage from URL.")
+        }
+        return nil
+    }
     #else
     static func cgimage(named name: String, subdirectory: String) -> CGImage? {
         if let url = Bundle.main.url(forResource: name, withExtension: "png", subdirectory: subdirectory) {

@@ -109,47 +109,49 @@ class MetalComputer {
         return tilemap
     }
     
-    func compute(to texture: MTLTexture, parameters: Parameters) {
+    func compute(to texture: MTLTexture, parameters: Parameters, iterations: Int = 1) {
         var params = parameters
         params.textureWidth = Int32(textureWidth)
         params.textureHeight = Int32(textureHeight)
         params.width = Int32(tileWidth)
         params.height = Int32(tileHeight)
-        params.step = Int32(step)
-        
-        let commandBuffer = commandQueue?.makeCommandBuffer()
-        let commandEncoder = commandBuffer?.makeComputeCommandEncoder()
-        commandEncoder?.setComputePipelineState(computePipelineState)
-        
-        let threadsPerGrid = MTLSize(width: tileWidth, height: tileHeight, depth: 1)
-        let maxWidth = Int(sqrt(Double(computePipelineState.maxTotalThreadsPerThreadgroup)))
-        let threadsPerThreadgroup = MTLSize(width: maxWidth, height: maxWidth, depth: 1)
-        
-        /// PROCESS GRID
-        commandEncoder?.setComputePipelineState(computePipelineState)
-        commandEncoder?.setBuffer(tileMapIn, offset: 0, index: 0)
-        commandEncoder?.setBuffer(tileMapOut, offset: 0, index: 1)
-        commandEncoder?.setBuffer(energyMap, offset: 0, index: 2)
-        commandEncoder?.setTexture(boundaryTexture, index: 0)
-        commandEncoder?.setBytes(&params, length: MemoryLayout<Parameters>.stride, index: 3)
-        commandEncoder?.dispatchThreads(threadsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
-        
-        /// COPY TO TEXTURE
-        commandEncoder?.setComputePipelineState(copyPipelineState)
-        commandEncoder?.setBuffer(tileMapIn, offset: 0, index: 0)
-        commandEncoder?.setBuffer(tileMapOut, offset: 0, index: 1)
-        commandEncoder?.setBuffer(energyMap, offset: 0, index: 2)
-        commandEncoder?.setBytes(&params, length: MemoryLayout<Parameters>.stride, index: 3)
-        commandEncoder?.setTexture(texture, index: 0)
-        commandEncoder?.setTexture(boundaryTexture, index: 1)
-        commandEncoder?.setTexture(gradientTexture, index: 2)
-        commandEncoder?.dispatchThreads(threadsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
-        
-        commandEncoder?.endEncoding()
-        commandBuffer?.commit()
-        commandBuffer?.waitUntilCompleted()
-        
-        step += 1
+        for _ in 0..<iterations {
+            params.step = Int32(step)
+            
+            let commandBuffer = commandQueue?.makeCommandBuffer()
+            let commandEncoder = commandBuffer?.makeComputeCommandEncoder()
+            commandEncoder?.setComputePipelineState(computePipelineState)
+            
+            let threadsPerGrid = MTLSize(width: tileWidth, height: tileHeight, depth: 1)
+            let maxWidth = Int(sqrt(Double(computePipelineState.maxTotalThreadsPerThreadgroup)))
+            let threadsPerThreadgroup = MTLSize(width: maxWidth, height: maxWidth, depth: 1)
+            
+            /// PROCESS GRID
+            commandEncoder?.setComputePipelineState(computePipelineState)
+            commandEncoder?.setBuffer(tileMapIn, offset: 0, index: 0)
+            commandEncoder?.setBuffer(tileMapOut, offset: 0, index: 1)
+            commandEncoder?.setBuffer(energyMap, offset: 0, index: 2)
+            commandEncoder?.setTexture(boundaryTexture, index: 0)
+            commandEncoder?.setBytes(&params, length: MemoryLayout<Parameters>.stride, index: 3)
+            commandEncoder?.dispatchThreads(threadsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
+            
+            /// COPY TO TEXTURE
+            commandEncoder?.setComputePipelineState(copyPipelineState)
+            commandEncoder?.setBuffer(tileMapIn, offset: 0, index: 0)
+            commandEncoder?.setBuffer(tileMapOut, offset: 0, index: 1)
+            commandEncoder?.setBuffer(energyMap, offset: 0, index: 2)
+            commandEncoder?.setBytes(&params, length: MemoryLayout<Parameters>.stride, index: 3)
+            commandEncoder?.setTexture(texture, index: 0)
+            commandEncoder?.setTexture(boundaryTexture, index: 1)
+            commandEncoder?.setTexture(gradientTexture, index: 2)
+            commandEncoder?.dispatchThreads(threadsPerGrid, threadsPerThreadgroup: threadsPerThreadgroup)
+            
+            commandEncoder?.endEncoding()
+            commandBuffer?.commit()
+            commandBuffer?.waitUntilCompleted()
+            
+            step += 1
+        }
     }
     
     func getFunction(name: String) -> MTLFunction? {
