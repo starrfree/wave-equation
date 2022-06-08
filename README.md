@@ -1,3 +1,1 @@
-# Metal Shader Template
-
-Simple Metal shader template.
+Metal GPU accelerated 2d wave simulator.
