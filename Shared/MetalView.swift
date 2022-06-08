@@ -25,7 +25,7 @@ final class MetalViewController: ViewController, MTKViewDelegate {
     var metalView: MTKView = MTKView()
     var parameters = Parameters()
     
-    var saveImages = false
+    var saveImages = false /// toggle to save images
     var imageFolder: URL?
     var simulationSteps = 0
     var imageSaved = 0
@@ -54,16 +54,22 @@ final class MetalViewController: ViewController, MTKViewDelegate {
         metalView.framebufferOnly = false
     }
     
+    /// initialize all buffers before computation
     func initBuffers() {
         guard let texture = metalView.currentDrawable?.texture else { return }
-        let pixelSize: Int = 2
-        let image: CGImage? = ImageLoader.cgimage(named: "conv div", subdirectory: "Shapes")
+        let pixelSize: Int = 1
+        /// "boundary image": the alpha component gives the speed of the wave. Alpha = 0 => wall
+        let image: CGImage? = ImageLoader.cgimage(named: "lens 2", subdirectory: "Shapes")
+        /// gradient image: dictates the color of the wave given it's value. value = -1 => top; value = 1 => bottom of the gradient image
         let gradient: CGImage? = ImageLoader.cgimage(named: "bluewhitered sat", subdirectory: "Gradient")
+        /// init buffers for Metal
         metalComputer.initalizeBuffers(width: texture.width / pixelSize, height: texture.height / pixelSize, textureWidth: texture.width, textureHeight: texture.height, image: image, gradient: gradient)
         #if os(macOS)
         if saveImages {
+            /// wait for folder choice
             metalView.isPaused = true
             DispatchQueue.main.async {
+                /// prompt folder
                 self.promptImageFolder { [self] in
                     simulationSteps = 0
                     metalView.isPaused = false
@@ -72,7 +78,8 @@ final class MetalViewController: ViewController, MTKViewDelegate {
         }
         #endif
     }
-
+    
+    /// make MTKView fill view
     func setupSubviews() {
         metalView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(metalView)
@@ -83,11 +90,13 @@ final class MetalViewController: ViewController, MTKViewDelegate {
             metalView.topAnchor.constraint(equalTo: view.topAnchor)
         ])
     }
-
+    
+    /// called when the view resizes
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
         initBuffers()
     }
-
+    
+    /// called every frame
     func draw(in view: MTKView) {
         guard let commandBuffer = metalComputer.commandQueue?.makeCommandBuffer(),
               let currentDrawable = view.currentDrawable
@@ -96,26 +105,29 @@ final class MetalViewController: ViewController, MTKViewDelegate {
             return
         }
         
+        /// make sure the view is the same width as the texture from metalComputer
         if currentDrawable.texture.width != metalComputer.textureWidth {
             initBuffers()
         }
         
+        /// make sure the view is the same height as the texture from metalComputer
         if currentDrawable.texture.height != metalComputer.textureHeight {
             initBuffers()
         }
         
-        metalComputer.compute(to: currentDrawable.texture, parameters: parameters)
+        /// Compute 9 iterations
+        metalComputer.compute(to: currentDrawable.texture, parameters: parameters, iterations: 9)
         
         #if os(macOS)
         if let url = imageFolder, saveImages {
-            if simulationSteps % 4 == 0 {
-                let dateFormatter = DateFormatter()
-                dateFormatter.dateFormat = "ss:mm:hh"
+            /// save every x steps
+            if simulationSteps % 1 == 0 {
                 saveTextureToFile(texture: currentDrawable.texture, url: url.appendingPathComponent(String(imageSaved) + ".png"))
                 print("Saved:", imageSaved)
                 imageSaved += 1
             }
-            if imageSaved > 1200 {
+            /// exit after x images saved
+            if imageSaved > 3000 {
                 exit(2002)
             }
         }

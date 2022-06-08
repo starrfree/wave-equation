@@ -16,7 +16,7 @@ struct ContentView: View {
             #if os(iOS)
                 .edgesIgnoringSafeArea(.all)
             #endif
-                .aspectRatio(2, contentMode: .fit)
+                .aspectRatio(2, contentMode: .fit) /// change aspect ratio to fit the boundary texture
         }
     }
 }
