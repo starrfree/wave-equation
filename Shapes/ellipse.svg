@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 2560 1440" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+    <g id="Ellipse" transform="matrix(0.625,0,0,0.703125,7.37188e-14,1.51434e-13)">
+        <path d="M4096,-0L-0,-0L-0,2048L4096,2048L4096,-0ZM2048,112.289C3113.33,112.289 3978.25,520.813 3978.25,1024C3978.25,1527.19 3113.33,1935.71 2048,1935.71C982.666,1935.71 117.75,1527.19 117.75,1024C117.75,520.813 982.666,112.289 2048,112.289Z"/>
+    </g>
+</svg>
